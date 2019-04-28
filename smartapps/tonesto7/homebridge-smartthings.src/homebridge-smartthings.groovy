@@ -63,6 +63,7 @@ def mainPage() {
                 input "lightList", "capability.switch", title: "Lights: (${lightList ? lightList?.size() : 0} Selected)", multiple: true, submitOnChange: true, required: false, image: getAppImg("light_on.png")
                 input "fanList", "capability.switch", title: "Fans: (${fanList ? fanList?.size() : 0} Selected)", multiple: true, submitOnChange: true, required: false, image: getAppImg("fan_on.png")
                 input "speakerList", "capability.switch", title: "Speakers: (${speakerList ? speakerList?.size() : 0} Selected)", multiple: true, submitOnChange: true, required: false, image: getAppImg("media_player.png")
+                input "cameraList", "capability.videoStream", title: "Cameras: (${cameraList ? cameraList?.size() : 0} Selected)", multiple: true, submitOnChange: true, required: false, image: getAppImg("crying_face.png")
             }
             section("All Other Devices:") {
                 input "sensorList", "capability.sensor", title: "Sensor Devices: (${sensorList ? sensorList?.size() : 0} Selected)", multiple: true, submitOnChange: true, required: false, image: getAppImg("sensors.png")
@@ -195,7 +196,7 @@ def imgTitle(imgSrc, imgWidth, imgHeight, titleStr, color=null) {
 
 def getDeviceCnt() {
     def devices = []
-    def items = ["deviceList", "sensorList", "switchList", "lightList", "fanList", "speakerList", "modeList"]
+    def items = ["deviceList", "sensorList", "switchList", "lightList", "fanList", "speakerList", "modeList", "cameraList"]
     if(isST()) { items?.push("routineList") }
     if(!isST()) { items?.push("shadesList") }
     items?.each { item ->
@@ -225,6 +226,7 @@ def initialize() {
     runIn(2, "registerDevices", [overwrite: true])
     runIn(4, "registerSensors", [overwrite: true])
     runIn(6, "registerSwitches", [overwrite: true])
+    runIn(8, "registerCameras", [overwrite: true])
     if(settings?.addSecurityDevice) {
         if(!isST()) {
             subscribe(location, "hsmStatus", changeHandler)
@@ -261,7 +263,7 @@ def onAppTouch(event) {
 
 def renderDevices() {
     def deviceData = []
-    def items = ["deviceList", "sensorList", "switchList", "lightList", "fanList", "speakerList", "modeList"]
+    def items = ["deviceList", "sensorList", "switchList", "lightList", "fanList", "speakerList", "modeList", "cameraList"]
     if(isST()) { items?.push("routineList") }
     if(!isST()) { items?.push("shadesList") }
     items?.each { item ->
@@ -363,6 +365,8 @@ def findDevice(paramid) {
     device = fanList.find { it?.id == paramid }
     if (device) return device
     device = speakerList.find { it?.id == paramid }
+    if (device) return device
+    device = cameraList.find { it?.id == paramid }
     if (device) return device
     if(!isST()) {
         device = shadesList.find { it?.id == paramid }
@@ -628,6 +632,9 @@ def deviceCapabilityList(device) {
     if(settings?.speakerList.find { it?.id == device?.id }) {
         items["Speaker"] = 1
     }
+    if(settings?.cameraList.find { it?.id == device?.id }) {
+        items["Camera"] = 1
+    }
     if(!isST() && settings?.shadesList.find { it?.id == device?.id }) {
         items["WindowShade"] = 1
     }
@@ -691,6 +698,12 @@ def registerSensors() {
     registerChangeHandler(settings?.sensorList)
     log.debug "Registering (${settings?.speakerList?.size() ?: 0}) Speakers"
     registerChangeHandler(settings?.speakerList)
+}
+
+def registerCameras() {
+    //This has to be done at startup because it takes too long for a normal command.
+    log.debug "Registering (${settings?.cameraList?.size() ?: 0}) Cameras"
+    registerChangeHandler(settings?.cameraList)
 }
 
 def registerSwitches() {
